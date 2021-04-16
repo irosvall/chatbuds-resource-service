@@ -23,7 +23,8 @@
     "express": "^4.17.1",
     "helmet": "^4.4.1",
     "http-errors": "^1.8.0",
-    "morgan": "^1.10.0"
+    "morgan": "^1.10.0",
+    "validator": "^13.5.2"
   },
   "devDependencies": {
     "@lnu/eslint-config": "^1.1.2",
