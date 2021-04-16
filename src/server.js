@@ -9,11 +9,14 @@ import express from 'express'
 import helmet from 'helmet'
 import logger from 'morgan'
 import { router } from './routes/router.js'
+import { connectDB } from './config/mongoose.js'
 
 /**
  * The main function of the application.
  */
 const main = async () => {
+  await connectDB()
+
   const app = express()
 
   // Set various HTTP headers to make the application little more secure (https://www.npmjs.com/package/helmet).
