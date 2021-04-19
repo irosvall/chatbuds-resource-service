@@ -43,5 +43,21 @@ const schema = new mongoose.Schema({
   versionKey: false
 })
 
+/**
+ * Creates and inserts a new user.
+ *
+ * @param {object} userData - The user data.
+ * @param {string} userData.username - Required username.
+ * @param {string} userData.email - Required email.
+ * @param {string} userData.about - Optional about text.
+ * @param {string} userData.friends - Optional friends list.
+ * @param {string} userData.chats - Optional chats list.
+ * @returns {Promise<User>} The Promise to be fulfilled.
+ */
+schema.statics.insert = async function (userData) {
+  const user = new User(userData)
+  return user.save()
+}
+
 // Create a model using the schema.
 export const User = mongoose.model('User', schema)
