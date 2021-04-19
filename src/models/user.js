@@ -40,8 +40,29 @@ const schema = new mongoose.Schema({
   }]
 }, {
   timestamps: true,
-  versionKey: false
+  versionKey: false,
+  toJSON: {
+    /**
+     * Performs a transformation of the resulting object to remove sensitive information.
+     *
+     * @param {object} doc - The mongoose document which is being converted.
+     * @param {object} ret - The plain object representation which has been converted.
+     */
+    transform: function (doc, ret) {
+      delete ret._id
+    }
+  }
 })
+
+/**
+ * Gets a user by username.
+ *
+ * @param {string} accountUsername - The username of the account.
+ * @returns {Promise<User>} The Promise to be fulfilled.
+ */
+schema.statics.getByName = async function (accountUsername) {
+  return this.findOne({ username: accountUsername })
+}
 
 /**
  * Creates and inserts a new user.
