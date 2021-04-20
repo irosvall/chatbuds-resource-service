@@ -23,6 +23,11 @@ export class UserController {
     try {
       const user = await User.getByName(req.params.username)
 
+      if (!user) {
+        next(createError(404))
+        return
+      }
+
       // Sends full user information if the user is requesting itself.
       if (req.params.username === req.account.username) {
         res
