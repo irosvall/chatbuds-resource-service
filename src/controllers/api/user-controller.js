@@ -13,7 +13,31 @@ import { User } from '../../models/user.js'
  */
 export class UserController {
   /**
-   * Sends a JSON response containing the specified image.
+   * Sends a JSON response containing the current user.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async findCurrentUser (req, res, next) {
+    try {
+      const user = await User.getByName(req.account.username)
+
+      if (!user) {
+        next(createError(404))
+        return
+      }
+
+      res
+        .status(200)
+        .json(user)
+    } catch (error) {
+      next(error)
+    }
+  }
+
+  /**
+   * Sends a JSON response containing the specified user.
    *
    * @param {object} req - Express request object.
    * @param {object} res - Express response object.

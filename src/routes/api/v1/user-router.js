@@ -15,6 +15,11 @@ const controller = new UserController()
 const authService = new AuthService()
 
 // GET user
+router.get('/',
+  (req, res, next) => authService.authenticateJWT(req, res, next),
+  (req, res, next) => controller.findCurrentUser(req, res, next)
+)
+
 router.get('/:username',
   (req, res, next) => authService.authenticateJWT(req, res, next),
   (req, res, next) => controller.find(req, res, next)
