@@ -18,6 +18,11 @@ const schema = new mongoose.Schema({
     maxlenght: [24, 'The username has extended the limit of {MAXLENGTH} characters.'],
     validate: [validator.isAlphanumeric, 'The username is only allowed to contain numbers and letters (a-z)']
   },
+  userID: {
+    type: String,
+    unique: 'The user ID is already in use.',
+    required: [true, 'An ID for the user is required.']
+  },
   email: {
     type: String,
     unique: 'The email is already in use.',
@@ -55,13 +60,13 @@ const schema = new mongoose.Schema({
 })
 
 /**
- * Gets a user by username.
+ * Gets a user by user ID.
  *
- * @param {string} accountUsername - The username of the account.
+ * @param {string} id - The user ID of the account.
  * @returns {Promise<User>} The Promise to be fulfilled.
  */
-schema.statics.getByName = async function (accountUsername) {
-  return this.findOne({ username: accountUsername })
+schema.statics.getById = async function (id) {
+  return this.findOne({ userID: id })
 }
 
 /**

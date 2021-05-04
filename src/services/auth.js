@@ -36,6 +36,7 @@ export class AuthService {
       const publicKey = await fs.readFile(process.env.PUBLIC_KEY_FILEPATH)
       const payload = jwt.verify(authorization[1], publicKey)
       req.account = {
+        userID: payload.sub,
         username: payload.name
       }
 

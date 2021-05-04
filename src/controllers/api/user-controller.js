@@ -21,7 +21,7 @@ export class UserController {
    */
   async findCurrentUser (req, res, next) {
     try {
-      const user = await User.getByName(req.account.username)
+      const user = await User.getById(req.account.userID)
 
       if (!user) {
         next(createError(404))
@@ -45,7 +45,7 @@ export class UserController {
    */
   async find (req, res, next) {
     try {
-      const user = await User.getByName(req.params.username)
+      const user = await User.getById(req.params.userID)
 
       if (!user) {
         next(createError(404))
@@ -53,7 +53,7 @@ export class UserController {
       }
 
       // Sends full user information if the user is requesting itself.
-      if (req.params.username === req.account.username) {
+      if (req.params.userID === req.account.userID) {
         res
           .status(200)
           .json(user)
@@ -61,6 +61,7 @@ export class UserController {
         res
           .status(200)
           .json({
+            userID: user.userID,
             username: user.username,
             about: user.about
           })
@@ -81,6 +82,7 @@ export class UserController {
     try {
       await User.insert({
         username: req.body.username,
+        userID: req.body.userID,
         email: req.body.email,
         about: req.body.about,
         friends: req.body.friends,
