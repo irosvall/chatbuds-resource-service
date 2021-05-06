@@ -13,6 +13,45 @@ import { User } from '../../models/user.js'
  */
 export class UserController {
   /**
+   * Provide req.targetedUser to the route if :userID is present.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   * @param {string} userID - The value of the id for the user to load.
+   */
+  async loadUser (req, res, next, userID) {
+    const user = await User.getById(userID)
+
+    if (!user) {
+      next(createError(404))
+      return
+    }
+
+    req.targetedUser = user
+    next()
+  }
+
+  /**
+   * Provide req.currentUser to the route.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async loadCurrentUser (req, res, next) {
+    const user = await User.getById(req.account.userID)
+
+    if (!user) {
+      next(createError(404))
+      return
+    }
+
+    req.currentUser = user
+    next()
+  }
+
+  /**
    * Sends a JSON response containing the current user.
    *
    * @param {object} req - Express request object.
@@ -21,16 +60,9 @@ export class UserController {
    */
   async findCurrentUser (req, res, next) {
     try {
-      const user = await User.getById(req.account.userID)
-
-      if (!user) {
-        next(createError(404))
-        return
-      }
-
       res
         .status(200)
-        .json(user)
+        .json(req.currentUser)
     } catch (error) {
       next(error)
     }
@@ -45,25 +77,18 @@ export class UserController {
    */
   async find (req, res, next) {
     try {
-      const user = await User.getById(req.params.userID)
-
-      if (!user) {
-        next(createError(404))
-        return
-      }
-
       // Sends full user information if the user is requesting itself.
-      if (req.params.userID === req.account.userID) {
+      if (req.targetedUser.userID === req.account.userID) {
         res
           .status(200)
-          .json(user)
+          .json(req.targetedUser)
       } else {
         res
           .status(200)
           .json({
-            userID: user.userID,
-            username: user.username,
-            about: user.about
+            userID: req.targetedUser.userID,
+            username: req.targetedUser.username,
+            about: req.targetedUser.about
           })
       }
     } catch (error) {
@@ -120,22 +145,19 @@ export class UserController {
    */
   async sendFriendRequest (req, res, next) {
     try {
-      const currentUser = await User.getById(req.account.userID)
-      const targetedUser = await User.getById(req.params.userID)
-
-      if (!currentUser || !targetedUser) {
-        next(createError(404))
+      if (req.currentUser.userID === req.targetedUser.userID) {
+        next(createError(400))
         return
       }
 
-      const sentFriendRequests = currentUser.sentFriendRequests
-      const recievedFriendRequests = targetedUser.recievedFriendRequests
+      const sentFriendRequests = req.currentUser.sentFriendRequests
+      const recievedFriendRequests = req.targetedUser.recievedFriendRequests
 
-      sentFriendRequests.push(targetedUser)
-      recievedFriendRequests.push(currentUser)
+      sentFriendRequests.push(req.targetedUser)
+      recievedFriendRequests.push(req.currentUser)
 
-      await currentUser.update({ sentFriendRequests: sentFriendRequests })
-      await targetedUser.update({ recievedFriendRequests: recievedFriendRequests })
+      await req.currentUser.update({ sentFriendRequests: sentFriendRequests })
+      await req.targetedUser.update({ recievedFriendRequests: recievedFriendRequests })
 
       res
         .status(204)
