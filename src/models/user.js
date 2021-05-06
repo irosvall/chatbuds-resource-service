@@ -7,6 +7,7 @@
 
 import mongoose from 'mongoose'
 import validator from 'validator'
+import createError from 'http-errors'
 
 const schema = new mongoose.Schema({
   username: {
@@ -36,6 +37,14 @@ const schema = new mongoose.Schema({
     maxlenght: [5000, 'The about text has extended the limit of {MAXLENGTH} characters.']
   },
   friends: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  sentFriendRequests: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  recievedFriendRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }],
@@ -74,15 +83,53 @@ schema.statics.getById = async function (id) {
  *
  * @param {object} userData - The user data.
  * @param {string} userData.username - Required username.
+ * @param {string} userData.userID - Required user ID.
  * @param {string} userData.email - Required email.
  * @param {string} userData.about - Optional about text.
- * @param {string} userData.friends - Optional friends list.
- * @param {string} userData.chats - Optional chats list.
  * @returns {Promise<User>} The Promise to be fulfilled.
  */
 schema.statics.insert = async function (userData) {
   const user = new User(userData)
   return user.save()
+}
+
+/**
+ * Partially updates a user.
+ *
+ * @param {object} userData - The user data.
+ * @param {string} userData.username - Required username.
+ * @param {string} userData.email - Required email.
+ * @param {string} userData.about - Optional about text.
+ * @param {string} userData.friends - Optional friends list.
+ * @param {string} userData.sentFriendRequests - Optional sent friend requests list.
+ * @param {string} userData.recievedFriendRequests - Optional recieved friend requests list.
+ * @param {string} userData.chats - Optional chats list.
+ * @returns {Promise} The Promise to be fulfilled.
+ */
+schema.methods.update = async function (userData) {
+  for (const property in userData) {
+    if (this[property]) {
+      this[property] = userData[property]
+
+      // If the property being changed is an array controll that all it's elements are unique.
+      if (this[property].isMongooseArray) {
+        if (!_uniqueArrayElementsValidator(this[property])) {
+          throw createError(409)
+        }
+      }
+    }
+  }
+  return this.save()
+}
+
+/**
+ * Custom validator to make sure each element is unique in an array.
+ *
+ * @param {Array} array - The array to be validated.
+ * @returns {boolean} - A boolean indecating if the validation passed or not.
+ */
+function _uniqueArrayElementsValidator (array) {
+  return !array.some(element => array.indexOf(element) !== array.lastIndexOf(element))
 }
 
 // Create a model using the schema.

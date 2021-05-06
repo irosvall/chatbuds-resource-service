@@ -27,3 +27,9 @@ router.get('/:userID',
 
 // POST user
 router.post('/', (req, res, next) => controller.create(req, res, next))
+
+// PATCH user/friendrequest/:userID
+router.patch('/friendrequest/:userID',
+  (req, res, next) => authService.authenticateJWT(req, res, next),
+  (req, res, next) => controller.sendFriendRequest(req, res, next)
+)

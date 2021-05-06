@@ -84,9 +84,7 @@ export class UserController {
         username: req.body.username,
         userID: req.body.userID,
         email: req.body.email,
-        about: req.body.about,
-        friends: req.body.friends,
-        chats: req.body.chats
+        about: req.body.about
       })
 
       res
@@ -104,6 +102,48 @@ export class UserController {
         }
 
         err = createError(409, message)
+        err.innerException = error
+      } else if (error.name === 'ValidationError') {
+        err = createError(400)
+        err.innerException = error
+      }
+      next(err)
+    }
+  }
+
+  /**
+   * Sends a friend request to the specified user.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async sendFriendRequest (req, res, next) {
+    try {
+      const currentUser = await User.getById(req.account.userID)
+      const targetedUser = await User.getById(req.params.userID)
+
+      if (!currentUser || !targetedUser) {
+        next(createError(404))
+        return
+      }
+
+      const sentFriendRequests = currentUser.sentFriendRequests
+      const recievedFriendRequests = targetedUser.recievedFriendRequests
+
+      sentFriendRequests.push(targetedUser)
+      recievedFriendRequests.push(currentUser)
+
+      await currentUser.update({ sentFriendRequests: sentFriendRequests })
+      await targetedUser.update({ recievedFriendRequests: recievedFriendRequests })
+
+      res
+        .status(204)
+        .end()
+    } catch (error) {
+      let err = error
+      if (err.code === 11000) {
+        err = createError(409)
         err.innerException = error
       } else if (error.name === 'ValidationError') {
         err = createError(400)
