@@ -47,10 +47,6 @@ const schema = new mongoose.Schema({
   recievedFriendRequests: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
-  }],
-  chats: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Chat'
   }]
 }, {
   timestamps: true,
@@ -75,7 +71,7 @@ const schema = new mongoose.Schema({
  * @returns {Promise<User>} The Promise to be fulfilled.
  */
 schema.statics.getById = async function (id) {
-  return this.findOne({ userID: id })
+  return this.findOne({ userID: id }).populate('friends').populate('sentFriendRequests').populate('recievedFriendRequests')
 }
 
 /**

@@ -62,7 +62,7 @@ export class UserController {
     try {
       res
         .status(200)
-        .json(req.currentUser)
+        .json(this._filterUser(req.currentUser))
     } catch (error) {
       next(error)
     }
@@ -81,7 +81,7 @@ export class UserController {
       if (req.targetedUser.userID === req.account.userID) {
         res
           .status(200)
-          .json(req.targetedUser)
+          .json(this._filterUser(req.targetedUser))
       } else {
         res
           .status(200)
@@ -173,5 +173,99 @@ export class UserController {
       }
       next(err)
     }
+  }
+
+  /**
+   * Accepts a friend request of the specified user.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async acceptFriendRequest (req, res, next) {
+    try {
+      if (req.currentUser.userID === req.targetedUser.userID) {
+        next(createError(400))
+        return
+      }
+
+      const sentFriendRequests = req.targetedUser.sentFriendRequests
+      const recievedFriendRequests = req.currentUser.recievedFriendRequests
+      const currentUserFriends = req.currentUser.friends
+      const targetedUserFriends = req.targetedUser.friends
+
+      const friendRequestID = sentFriendRequests.findIndex(user => user.userID === req.currentUser.userID)
+
+      // If targeted user has sent a friend request then add each other as friends.
+      if (friendRequestID !== -1) {
+        sentFriendRequests.splice(friendRequestID, 1)
+        currentUserFriends.push(req.targetedUser)
+        targetedUserFriends.push(req.currentUser)
+
+        // Removes the recieved friend request from the targeted user.
+        for (let i = 0; i < recievedFriendRequests.length; i++) {
+          if (recievedFriendRequests[i].userID === req.targetedUser.userID) {
+            recievedFriendRequests.splice(i, 1)
+            break
+          }
+        }
+
+        await req.currentUser.update({ recievedFriendRequests: recievedFriendRequests, friends: currentUserFriends })
+        await req.targetedUser.update({ sentFriendRequests: sentFriendRequests, friends: targetedUserFriends })
+      } else {
+        next(createError(404))
+        return
+      }
+
+      res
+        .status(204)
+        .end()
+    } catch (error) {
+      let err = error
+      if (err.code === 11000) {
+        err = createError(409)
+        err.innerException = error
+      } else if (error.name === 'ValidationError') {
+        err = createError(400)
+        err.innerException = error
+      }
+      next(err)
+    }
+  }
+
+  /**
+   * Filters a user's information of other users from their sensitive information.
+   *
+   * @param {User} user - The user to filter.
+   * @returns {User} Returns the user with filtered information.
+   */
+  _filterUser (user) {
+    const friends = this._filterSensitiveInformation(user.friends)
+    const sentFriendRequests = this._filterSensitiveInformation(user.sentFriendRequests)
+    const recievedFriendRequests = this._filterSensitiveInformation(user.recievedFriendRequests)
+
+    return {
+      username: user.username,
+      userID: user.userID,
+      email: user.email,
+      about: user.about,
+      friends: friends,
+      sentFriendRequests: sentFriendRequests,
+      recievedFriendRequests: recievedFriendRequests
+    }
+  }
+
+  /**
+   * Filters an array of users from their sensetive information.
+   *
+   * @param {User[]} users - The users.
+   * @returns {User[]} The filtered array of users.
+   */
+  _filterSensitiveInformation (users) {
+    return users.map(user => ({
+      userID: user.userID,
+      username: user.username,
+      about: user.about
+    }))
   }
 }
