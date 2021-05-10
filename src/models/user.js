@@ -109,7 +109,7 @@ schema.methods.update = async function (userData) {
 
       // If the property being changed is an array controll that all it's elements are unique.
       if (this[property].isMongooseArray) {
-        if (!_uniqueArrayElementsValidator(this[property])) {
+        if (!_isUniqueArray(this[property])) {
           throw createError(409)
         }
       }
@@ -119,13 +119,31 @@ schema.methods.update = async function (userData) {
 }
 
 /**
- * Custom validator to make sure each element is unique in an array.
+ * Controlls if each element is unique in an array.
  *
  * @param {Array} array - The array to be validated.
  * @returns {boolean} - A boolean indecating if the validation passed or not.
  */
-function _uniqueArrayElementsValidator (array) {
-  return !array.some(element => array.indexOf(element) !== array.lastIndexOf(element))
+function _isUniqueArray (array) {
+  const uniqueness = new Map()
+
+  // Counts how many times an element shows up in the array.
+  for (const element of array) {
+    if (uniqueness.has(element.id)) {
+      const times = uniqueness.get(element.id)
+      uniqueness.set(element.id, times + 1)
+    } else {
+      uniqueness.set(element.id, 1)
+    }
+  }
+
+  for (const times of uniqueness.values()) {
+    if (times > 1) {
+      return false
+    }
+  }
+
+  return true
 }
 
 // Create a model using the schema.
