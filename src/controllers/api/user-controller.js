@@ -145,8 +145,16 @@ export class UserController {
    */
   async sendFriendRequest (req, res, next) {
     try {
-      if (req.currentUser.userID === req.targetedUser.userID) {
+      // Don't send friend request if it's to the current user or if they're already friends.
+      if (req.currentUser.userID === req.targetedUser.userID ||
+        req.currentUser.friends.find(user => user.userID === req.targetedUser.userID)) {
         next(createError(400))
+        return
+      }
+
+      // If the targeted user also sent a friend request, accept the friend request instead.
+      if (req.targetedUser.sentFriendRequests.find(user => user.userID === req.currentUser.userID)) {
+        await this.acceptFriendRequest(req, res, next)
         return
       }
 
