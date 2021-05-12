@@ -9,6 +9,7 @@
 import mongoose from 'mongoose'
 import chai from 'chai'
 import sinon from 'sinon'
+import createError from 'http-errors'
 import { mockdata } from './mockdata.js'
 import { User } from '../src/models/user.js'
 import { UserController } from '../src/controllers/api/user-controller.js'
@@ -36,8 +37,8 @@ describe('Testing friend requests', () => {
   })
 
   it('Should send successful friend request', async () => {
-    const currentUser = await User.getById('60911823912a5649b4c05g2b')
-    const targetedUser = await User.getById('60911823912a5649b4c05b72')
+    const currentUser = await User.getById('testNoFriends')
+    const targetedUser = await User.getById('test1NoFriends')
 
     const req = {
       currentUser: currentUser,
@@ -47,6 +48,20 @@ describe('Testing friend requests', () => {
 
     await userController.sendFriendRequest(req, res, () => { })
     chai.assert(res.status.calledWith(204))
+  })
+
+  it('Should not send duplicate friend request', async () => {
+    const currentUser = await User.getById('testNoFriends')
+    const targetedUser = await User.getById('test2friendRequestFromTest')
+
+    const req = {
+      currentUser: currentUser,
+      targetedUser: targetedUser
+    }
+    const callback = mockCallback()
+
+    await userController.sendFriendRequest(req, {}, callback)
+    callback.calledWith(createError(409))
   })
 })
 
@@ -62,4 +77,13 @@ const mockResponse = () => {
   res.send = sinon.stub().returns(res)
   res.end = sinon.stub().returns(res)
   return res
+}
+
+/**
+ * Returns a mocked next function.
+ *
+ * @returns {Function} - The mocked function.
+ */
+const mockCallback = () => {
+  return sinon.spy()
 }
