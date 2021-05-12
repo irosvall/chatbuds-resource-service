@@ -1,15 +1,18 @@
 import mongoose from 'mongoose'
 
 const testId = mongoose.Types.ObjectId()
+const test3Id = mongoose.Types.ObjectId()
 
 export const mockdata = {
   users: [
     {
       _id: testId,
       username: 'test',
-      userID: 'testNoFriends',
+      userID: 'test',
       email: 'test@test.test',
-      friends: [],
+      friends: [{
+        _id: test3Id
+      }],
       sentFriendRequests: [],
       recievedFriendRequests: []
     },
@@ -30,6 +33,17 @@ export const mockdata = {
       recievedFriendRequests: [{
         _id: testId
       }]
+    },
+    {
+      _id: test3Id,
+      username: 'test3',
+      userID: 'test3friendsWithTest',
+      email: 'test3@test.test',
+      friends: [{
+        _id: testId
+      }],
+      sentFriendRequests: [],
+      recievedFriendRequests: []
     }
   ]
 }

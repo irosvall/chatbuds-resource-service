@@ -37,7 +37,7 @@ describe('Testing friend requests', () => {
   })
 
   it('Should send successful friend request', async () => {
-    const currentUser = await User.getById('testNoFriends')
+    const currentUser = await User.getById('test')
     const targetedUser = await User.getById('test1NoFriends')
 
     const req = {
@@ -47,11 +47,11 @@ describe('Testing friend requests', () => {
     const res = mockResponse()
 
     await userController.sendFriendRequest(req, res, () => { })
-    chai.assert(res.status.calledWith(204))
+    chai.assert.isTrue(res.status.calledWith(204))
   })
 
   it('Should not send duplicate friend request', async () => {
-    const currentUser = await User.getById('testNoFriends')
+    const currentUser = await User.getById('test')
     const targetedUser = await User.getById('test2friendRequestFromTest')
 
     const req = {
@@ -61,7 +61,35 @@ describe('Testing friend requests', () => {
     const callback = mockCallback()
 
     await userController.sendFriendRequest(req, {}, callback)
-    callback.calledWith(createError(409))
+    chai.assert.equal('ConflictError', callback.getCall(0).args[0].name)
+  })
+
+  it('Should not send friend request to already friend', async () => {
+    const currentUser = await User.getById('test')
+    const targetedUser = await User.getById('test3friendsWithTest')
+
+    const req = {
+      currentUser: currentUser,
+      targetedUser: targetedUser
+    }
+    const callback = mockCallback()
+
+    await userController.sendFriendRequest(req, {}, callback)
+    chai.assert.equal('BadRequestError', callback.getCall(0).args[0].name)
+  })
+
+  it('Should not send friend request to itself', async () => {
+    const currentUser = await User.getById('test')
+    const targetedUser = await User.getById('test')
+
+    const req = {
+      currentUser: currentUser,
+      targetedUser: targetedUser
+    }
+    const callback = mockCallback()
+
+    await userController.sendFriendRequest(req, {}, callback)
+    chai.assert.equal('BadRequestError', callback.getCall(0).args[0].name)
   })
 })
 
