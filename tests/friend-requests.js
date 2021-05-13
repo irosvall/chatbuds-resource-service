@@ -29,11 +29,9 @@ describe('Friends functionality', () => {
     await mongoose.connection.close()
   })
 
-  describe('Testing friend requests', () => {
+  describe('Testing sending friend requests', () => {
     beforeEach(async () => {
-      // Inserts the premade users into the database.
-      await User.deleteMany()
-      await User.insertMany(mockdata.users)
+      await resetTestDatabase()
     })
 
     it('Should send successful friend request', async () => {
@@ -94,6 +92,10 @@ describe('Friends functionality', () => {
   })
 
   describe('Testing accepting friend requests', () => {
+    beforeEach(async () => {
+      await resetTestDatabase()
+    })
+
     it('Should successfully accept friend request', async () => {
       const currentUser = await User.getById('test2friendRequestFromTest')
       const targetedUser = await User.getById('test')
@@ -122,7 +124,49 @@ describe('Friends functionality', () => {
       chai.assert.equal('NotFoundError', callback.getCall(0).args[0].name)
     })
   })
+
+  describe('Testing declining friend requests', () => {
+    beforeEach(async () => {
+      await resetTestDatabase()
+    })
+
+    it('Should successfully decline friend request', async () => {
+      const currentUser = await User.getById('test2friendRequestFromTest')
+      const targetedUser = await User.getById('test')
+
+      const req = {
+        currentUser: currentUser,
+        targetedUser: targetedUser
+      }
+      const res = mockResponse()
+
+      await userController.declineFriendRequest(req, res, () => { })
+      chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+    })
+
+    it('Should not decline friend request if no request has been sent', async () => {
+      const currentUser = await User.getById('test1NoFriends')
+      const targetedUser = await User.getById('test')
+
+      const req = {
+        currentUser: currentUser,
+        targetedUser: targetedUser
+      }
+      const callback = mockCallback()
+
+      await userController.acceptFriendRequest(req, {}, callback)
+      chai.assert.equal('NotFoundError', callback.getCall(0).args[0].name)
+    })
+  })
 })
+
+/**
+ * Resets the test database by removing all users and then insert all mocked users.
+ */
+const resetTestDatabase = async () => {
+  await User.deleteMany()
+  await User.insertMany(mockdata.users)
+}
 
 /**
  * Creates a mocked response object.
