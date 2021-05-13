@@ -45,7 +45,13 @@ describe('Friends functionality', () => {
       const res = mockResponse()
 
       await userController.sendFriendRequest(req, res, () => { })
+
+      const updatedCurrentUser = await User.getById('test')
+      const updatedTargetedUser = await User.getById('test1NoFriends')
+
       chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+      chai.assert.equal(updatedCurrentUser.sentFriendRequests[1].userID, updatedTargetedUser.userID)
+      chai.assert.equal(updatedTargetedUser.recievedFriendRequests[0].userID, updatedCurrentUser.userID)
     })
 
     it('Should not send duplicate friend request', async () => {
@@ -59,7 +65,13 @@ describe('Friends functionality', () => {
       const callback = mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
+
+      const updatedCurrentUser = await User.getById('test')
+      const updatedTargetedUser = await User.getById('test2friendRequestFromTest')
+
       chai.assert.equal('ConflictError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedCurrentUser.sentFriendRequests.length, 1)
+      chai.assert.equal(updatedTargetedUser.recievedFriendRequests.length, 1)
     })
 
     it('Should not send friend request to already friend', async () => {
@@ -73,12 +85,18 @@ describe('Friends functionality', () => {
       const callback = mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
+
+      const updatedCurrentUser = await User.getById('test')
+      const updatedTargetedUser = await User.getById('test3friendsWithTest')
+
       chai.assert.equal('BadRequestError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedCurrentUser.sentFriendRequests.length, 1)
+      chai.assert.equal(updatedTargetedUser.recievedFriendRequests.length, 0)
     })
 
     it('Should not send friend request to itself', async () => {
       const currentUser = await User.getById('test')
-      const targetedUser = await User.getById('test')
+      const targetedUser = currentUser
 
       const req = {
         currentUser: currentUser,
@@ -87,7 +105,12 @@ describe('Friends functionality', () => {
       const callback = mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
+
+      const updatedUser = await User.getById('test')
+
       chai.assert.equal('BadRequestError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedUser.sentFriendRequests.length, 1)
+      chai.assert.equal(updatedUser.recievedFriendRequests.length, 0)
     })
   })
 
@@ -107,7 +130,15 @@ describe('Friends functionality', () => {
       const res = mockResponse()
 
       await userController.acceptFriendRequest(req, res, () => { })
+
+      const updatedCurrentUser = await User.getById('test2friendRequestFromTest')
+      const updatedTargetedUser = await User.getById('test')
+
       chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+      chai.assert.equal(updatedCurrentUser.friends[0].userID, updatedTargetedUser.userID)
+      chai.assert.equal(updatedTargetedUser.friends[1].userID, updatedCurrentUser.userID)
+      chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 0)
     })
 
     it('Should not accept friend request if no request has been sent', async () => {
@@ -121,7 +152,15 @@ describe('Friends functionality', () => {
       const callback = mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
+
+      const updatedCurrentUser = await User.getById('test1NoFriends')
+      const updatedTargetedUser = await User.getById('test')
+
       chai.assert.equal('NotFoundError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedCurrentUser.friends.length, 0)
+      chai.assert.equal(updatedTargetedUser.friends.length, 1)
+      chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 1)
     })
   })
 
@@ -141,7 +180,13 @@ describe('Friends functionality', () => {
       const res = mockResponse()
 
       await userController.declineFriendRequest(req, res, () => { })
+
+      const updatedCurrentUser = await User.getById('test2friendRequestFromTest')
+      const updatedTargetedUser = await User.getById('test')
+
       chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+      chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 0)
     })
 
     it('Should not decline friend request if no request has been sent', async () => {
@@ -155,7 +200,13 @@ describe('Friends functionality', () => {
       const callback = mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
+
+      const updatedCurrentUser = await User.getById('test1NoFriends')
+      const updatedTargetedUser = await User.getById('test')
+
       chai.assert.equal('NotFoundError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 1)
     })
   })
 })
