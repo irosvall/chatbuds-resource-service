@@ -1,7 +1,7 @@
 /* eslint-disable no-undef */
 
 /**
- * Tests for friend requests logic.
+ * Tests for user functionality.
  *
  * @author Ida Rosvall <ir222gn@student.lnu.se>
  */
