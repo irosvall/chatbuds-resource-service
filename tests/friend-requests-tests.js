@@ -35,13 +35,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should send successful friend request', async () => {
-      const currentUser = await User.getById('test')
-      const targetedUser = await User.getById('test1NoFriends')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
       const res = mockResponse()
 
       await userController.sendFriendRequest(req, res, () => { })
@@ -55,13 +49,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should not send duplicate friend request', async () => {
-      const currentUser = await User.getById('test')
-      const targetedUser = await User.getById('test2friendRequestFromTest')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test', 'test2friendRequestFromTest')
       const callback = mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
@@ -75,13 +63,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should not send friend request to already friend', async () => {
-      const currentUser = await User.getById('test')
-      const targetedUser = await User.getById('test3friendsWithTest')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
       const callback = mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
@@ -120,13 +102,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully accept friend request', async () => {
-      const currentUser = await User.getById('test2friendRequestFromTest')
-      const targetedUser = await User.getById('test')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
       const res = mockResponse()
 
       await userController.acceptFriendRequest(req, res, () => { })
@@ -142,13 +118,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should not accept friend request if no request has been sent', async () => {
-      const currentUser = await User.getById('test1NoFriends')
-      const targetedUser = await User.getById('test')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
       const callback = mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
@@ -170,13 +140,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully decline friend request', async () => {
-      const currentUser = await User.getById('test2friendRequestFromTest')
-      const targetedUser = await User.getById('test')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
       const res = mockResponse()
 
       await userController.declineFriendRequest(req, res, () => { })
@@ -190,13 +154,7 @@ describe('Friends functionality', () => {
     })
 
     it('Should not decline friend request if no request has been sent', async () => {
-      const currentUser = await User.getById('test1NoFriends')
-      const targetedUser = await User.getById('test')
-
-      const req = {
-        currentUser: currentUser,
-        targetedUser: targetedUser
-      }
+      const req = await createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
       const callback = mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
@@ -209,6 +167,40 @@ describe('Friends functionality', () => {
       chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 1)
     })
   })
+
+  describe('Testing removing friends', () => {
+    beforeEach(async () => {
+      await resetTestDatabase()
+    })
+
+    it('Should successfully remove friend', async () => {
+      const req = await createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
+      const res = mockResponse()
+
+      await userController.removeFriend(req, res, () => { })
+
+      const updatedCurrentUser = await User.getById('test')
+      const updatedTargetedUser = await User.getById('test3friendsWithTest')
+
+      chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+      chai.assert.equal(updatedCurrentUser.friends.length, 0)
+      chai.assert.equal(updatedTargetedUser.friends.length, 0)
+    })
+
+    it('Should not remove friend if the users are not friends', async () => {
+      const req = await createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
+      const callback = mockCallback()
+
+      await userController.removeFriend(req, {}, callback)
+
+      const updatedCurrentUser = await User.getById('test')
+      const updatedTargetedUser = await User.getById('test1NoFriends')
+
+      chai.assert.equal('NotFoundError', callback.getCall(0).args[0].name)
+      chai.assert.equal(updatedCurrentUser.friends.length, 1)
+      chai.assert.equal(updatedTargetedUser.friends.length, 0)
+    })
+  })
 })
 
 /**
@@ -217,6 +209,24 @@ describe('Friends functionality', () => {
 const resetTestDatabase = async () => {
   await User.deleteMany()
   await User.insertMany(mockdata.users)
+}
+
+/**
+ * Creates a req object with the current user and target user on it,
+ * retrieved from the test database.
+ *
+ * @param {string} currentUserID - The ID of the current user.
+ * @param {string} targetUserID - The ID of the targeted user.
+ * @returns {object} - The mocked req object.
+ */
+const createReqWithCurrentAndTargetUser = async (currentUserID, targetUserID) => {
+  const currentUser = await User.getById(currentUserID)
+  const targetedUser = await User.getById(targetUserID)
+
+  return {
+    currentUser: currentUser,
+    targetedUser: targetedUser
+  }
 }
 
 /**
