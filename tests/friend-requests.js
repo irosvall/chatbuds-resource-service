@@ -9,7 +9,6 @@
 import mongoose from 'mongoose'
 import chai from 'chai'
 import sinon from 'sinon'
-import createError from 'http-errors'
 import { mockdata } from './mockdata.js'
 import { User } from '../src/models/user.js'
 import { UserController } from '../src/controllers/api/user-controller.js'
@@ -106,7 +105,7 @@ describe('Friends functionality', () => {
       const res = mockResponse()
 
       await userController.acceptFriendRequest(req, res, () => { })
-      chai.assert.isTrue(res.status.calledWith(204))
+      chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
     })
 
     it('Should not accept friend request if no request has been sent', async () => {
