@@ -34,7 +34,7 @@ describe('Friends functionality', () => {
       await resetTestDatabase()
     })
 
-    it('Should send successful friend request', async () => {
+    it('Should successfully send friend request', async () => {
       const req = await createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
       const res = mockResponse()
 
@@ -114,6 +114,24 @@ describe('Friends functionality', () => {
       chai.assert.equal(updatedCurrentUser.friends[0].userID, updatedTargetedUser.userID)
       chai.assert.equal(updatedTargetedUser.friends[1].userID, updatedCurrentUser.userID)
       chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 0)
+    })
+
+    it('Should remove all friend requests when both users has sent friend request', async () => {
+      const req = await createReqWithCurrentAndTargetUser('test4friendRequestToTest5', 'test5friendRequestToTest4')
+      const res = mockResponse()
+
+      await userController.acceptFriendRequest(req, res, () => { })
+
+      const updatedCurrentUser = await User.getById('test4friendRequestToTest5')
+      const updatedTargetedUser = await User.getById('test5friendRequestToTest4')
+
+      chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
+      chai.assert.equal(updatedCurrentUser.friends[0].userID, updatedTargetedUser.userID)
+      chai.assert.equal(updatedTargetedUser.friends[0].userID, updatedCurrentUser.userID)
+      chai.assert.equal(updatedCurrentUser.recievedFriendRequests.length, 0)
+      chai.assert.equal(updatedCurrentUser.sentFriendRequests.length, 0)
+      chai.assert.equal(updatedTargetedUser.recievedFriendRequests.length, 0)
       chai.assert.equal(updatedTargetedUser.sentFriendRequests.length, 0)
     })
 

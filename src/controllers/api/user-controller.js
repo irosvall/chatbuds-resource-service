@@ -152,12 +152,6 @@ export class UserController {
         return
       }
 
-      // If the targeted user also sent a friend request, accept the friend request instead.
-      if (req.targetedUser.sentFriendRequests.find(user => user.userID === req.currentUser.userID)) {
-        await this.acceptFriendRequest(req, res, next)
-        return
-      }
-
       const sentFriendRequests = req.currentUser.sentFriendRequests
       const recievedFriendRequests = req.targetedUser.recievedFriendRequests
 
@@ -197,29 +191,36 @@ export class UserController {
         return
       }
 
-      const sentFriendRequests = req.targetedUser.sentFriendRequests
-      const recievedFriendRequests = req.currentUser.recievedFriendRequests
+      const currentUserRecievedFriendRequests = req.currentUser.recievedFriendRequests
+      const currentUserSentFriendRequests = req.currentUser.sentFriendRequests
       const currentUserFriends = req.currentUser.friends
+      const targetUserSentFriendRequests = req.targetedUser.sentFriendRequests
+      const targetUserRecievedFriendRequests = req.targetedUser.recievedFriendRequests
       const targetedUserFriends = req.targetedUser.friends
 
-      const friendRequestID = sentFriendRequests.findIndex(user => user.userID === req.currentUser.userID)
+      const friendRequestID = targetUserSentFriendRequests.findIndex(user => user.userID === req.currentUser.userID)
 
       // If targeted user has sent a friend request then add each other as friends.
       if (friendRequestID !== -1) {
-        sentFriendRequests.splice(friendRequestID, 1)
+        targetUserSentFriendRequests.splice(friendRequestID, 1)
         currentUserFriends.push(req.targetedUser)
         targetedUserFriends.push(req.currentUser)
 
-        // Removes the recieved friend request from the targeted user.
-        for (let i = 0; i < recievedFriendRequests.length; i++) {
-          if (recievedFriendRequests[i].userID === req.targetedUser.userID) {
-            recievedFriendRequests.splice(i, 1)
-            break
-          }
-        }
+        // Removes friend requests from both users.
+        this._removeUserFromArray(currentUserRecievedFriendRequests, req.targetedUser)
+        this._removeUserFromArray(currentUserSentFriendRequests, req.targetedUser)
+        this._removeUserFromArray(targetUserRecievedFriendRequests, req.currentUser)
 
-        await req.currentUser.update({ recievedFriendRequests: recievedFriendRequests, friends: currentUserFriends })
-        await req.targetedUser.update({ sentFriendRequests: sentFriendRequests, friends: targetedUserFriends })
+        await req.currentUser.update({
+          recievedFriendRequests: currentUserRecievedFriendRequests,
+          sentFriendRequests: currentUserSentFriendRequests,
+          friends: currentUserFriends
+        })
+        await req.targetedUser.update({
+          recievedFriendRequests: targetUserRecievedFriendRequests,
+          sentFriendRequests: targetUserSentFriendRequests,
+          friends: targetedUserFriends
+        })
       } else {
         next(createError(404))
         return
@@ -250,23 +251,14 @@ export class UserController {
    */
   async declineFriendRequest (req, res, next) {
     try {
-      const sentFriendRequests = Array.from(req.targetedUser.sentFriendRequests)
-      const recievedFriendRequests = Array.from(req.currentUser.recievedFriendRequests)
+      const recievedFriendRequests = req.currentUser.recievedFriendRequests
+      const sentFriendRequests = req.targetedUser.sentFriendRequests
 
-      for (let i = 0; i < recievedFriendRequests.length; i++) {
-        if (recievedFriendRequests[i].userID === req.targetedUser.userID) {
-          recievedFriendRequests.splice(i, 1)
-        }
-      }
-      for (let i = 0; i < sentFriendRequests.length; i++) {
-        if (sentFriendRequests[i].userID === req.currentUser.userID) {
-          sentFriendRequests.splice(i, 1)
-        }
-      }
+      const isRemovedFromCurrent = this._removeUserFromArray(recievedFriendRequests, req.targetedUser)
+      const isRemovedFromTarget = this._removeUserFromArray(sentFriendRequests, req.currentUser)
 
-      // If friend request was deleted then update database, otherwise send 404 status.
-      if (req.targetedUser.sentFriendRequests.length !== sentFriendRequests.length ||
-          req.currentUser.recievedFriendRequests.length !== recievedFriendRequests.length) {
+      // If a friend request was deleted update database, otherwise send 404 status.
+      if (isRemovedFromCurrent || isRemovedFromTarget) {
         await req.targetedUser.update({ sentFriendRequests: sentFriendRequests })
         await req.currentUser.update({ recievedFriendRequests: recievedFriendRequests })
       } else {
@@ -299,25 +291,14 @@ export class UserController {
    */
   async removeFriend (req, res, next) {
     try {
-      const currentUserFriends = Array.from(req.currentUser.friends)
-      const targetUserFriends = Array.from(req.targetedUser.friends)
+      const currentUserFriends = req.currentUser.friends
+      const targetUserFriends = req.targetedUser.friends
 
-      for (let i = 0; i < currentUserFriends.length; i++) {
-        if (currentUserFriends[i].userID === req.targetedUser.userID) {
-          currentUserFriends.splice(i, 1)
-          break
-        }
-      }
-      for (let i = 0; i < targetUserFriends.length; i++) {
-        if (targetUserFriends[i].userID === req.currentUser.userID) {
-          targetUserFriends.splice(i, 1)
-          break
-        }
-      }
+      const isRemovedFromCurrent = this._removeUserFromArray(currentUserFriends, req.targetedUser)
+      const isRemovedFromTarget = this._removeUserFromArray(targetUserFriends, req.currentUser)
 
-      // If friend request was deleted then update database, otherwise send 404 status.
-      if (req.currentUser.friends.length !== currentUserFriends.length ||
-          req.targetedUser.friends.length !== targetUserFriends.length) {
+      // If a friend was deleted update database, otherwise send 404 status.
+      if (isRemovedFromCurrent || isRemovedFromTarget) {
         await req.currentUser.update({ friends: currentUserFriends })
         await req.targetedUser.update({ friends: targetUserFriends })
       } else {
@@ -339,6 +320,23 @@ export class UserController {
       }
       next(err)
     }
+  }
+
+  /**
+   * Removes a user from an array.
+   *
+   * @param {User[]} array - An array of users.
+   * @param {User} user - The user to remove from array.
+   * @returns {boolean} - True if user got removed, otherwise false.
+   */
+  _removeUserFromArray (array, user) {
+    for (let i = 0; i < array.length; i++) {
+      if (array[i].userID === user.userID) {
+        array.splice(i, 1)
+        return true
+      }
+    }
+    return false
   }
 
   /**
