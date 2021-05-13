@@ -291,6 +291,57 @@ export class UserController {
   }
 
   /**
+   * Removes a specified friend.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async removeFriend (req, res, next) {
+    try {
+      const currentUserFriends = Array.from(req.currentUser.friends)
+      const targetUserFriends = Array.from(req.targetedUser.friends)
+
+      for (let i = 0; i < currentUserFriends.length; i++) {
+        if (currentUserFriends[i].userID === req.targetedUser.userID) {
+          currentUserFriends.splice(i, 1)
+          break
+        }
+      }
+      for (let i = 0; i < targetUserFriends.length; i++) {
+        if (targetUserFriends[i].userID === req.currentUser.userID) {
+          targetUserFriends.splice(i, 1)
+          break
+        }
+      }
+
+      // If friend request was deleted then update database, otherwise send 404 status.
+      if (req.currentUser.friends.length !== currentUserFriends.length ||
+          req.targetedUser.friends.length !== targetUserFriends.length) {
+        await req.currentUser.update({ friends: currentUserFriends })
+        await req.targetedUser.update({ friends: targetUserFriends })
+      } else {
+        next(createError(404))
+        return
+      }
+
+      res
+        .status(204)
+        .end()
+    } catch (error) {
+      let err = error
+      if (err.code === 11000) {
+        err = createError(409)
+        err.innerException = error
+      } else if (error.name === 'ValidationError') {
+        err = createError(400)
+        err.innerException = error
+      }
+      next(err)
+    }
+  }
+
+  /**
    * Filters a user's information of other users from their sensitive information.
    *
    * @param {User} user - The user to filter.
