@@ -242,6 +242,55 @@ export class UserController {
   }
 
   /**
+   * Declines a friend request of the specified user.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async declineFriendRequest (req, res, next) {
+    try {
+      const sentFriendRequests = Array.from(req.targetedUser.sentFriendRequests)
+      const recievedFriendRequests = Array.from(req.currentUser.recievedFriendRequests)
+
+      for (let i = 0; i < recievedFriendRequests.length; i++) {
+        if (recievedFriendRequests[i].userID === req.targetedUser.userID) {
+          recievedFriendRequests.splice(i, 1)
+        }
+      }
+      for (let i = 0; i < sentFriendRequests.length; i++) {
+        if (sentFriendRequests[i].userID === req.currentUser.userID) {
+          sentFriendRequests.splice(i, 1)
+        }
+      }
+
+      // If friend request was deleted then update database, otherwise send 404 status.
+      if (req.targetedUser.sentFriendRequests.length !== sentFriendRequests.length ||
+          req.currentUser.recievedFriendRequests.length !== recievedFriendRequests.length) {
+        await req.targetedUser.update({ sentFriendRequests: sentFriendRequests })
+        await req.currentUser.update({ recievedFriendRequests: recievedFriendRequests })
+      } else {
+        next(createError(404))
+        return
+      }
+
+      res
+        .status(204)
+        .end()
+    } catch (error) {
+      let err = error
+      if (err.code === 11000) {
+        err = createError(409)
+        err.innerException = error
+      } else if (error.name === 'ValidationError') {
+        err = createError(400)
+        err.innerException = error
+      }
+      next(err)
+    }
+  }
+
+  /**
    * Filters a user's information of other users from their sensitive information.
    *
    * @param {User} user - The user to filter.

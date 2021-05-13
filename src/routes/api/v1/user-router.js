@@ -49,3 +49,10 @@ router.patch('/acceptfriend/:userID',
   (req, res, next) => controller.loadCurrentUser(req, res, next),
   (req, res, next) => controller.acceptFriendRequest(req, res, next)
 )
+
+// PATCH user/declinefriend/:userID
+router.patch('/declinefriend/:userID',
+  (req, res, next) => authService.authenticateJWT(req, res, next),
+  (req, res, next) => controller.loadCurrentUser(req, res, next),
+  (req, res, next) => controller.declineFriendRequest(req, res, next)
+)
