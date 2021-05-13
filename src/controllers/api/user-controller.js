@@ -137,6 +137,30 @@ export class UserController {
   }
 
   /**
+   * Deletes the user.
+   *
+   * @param {object} req - Express request object.
+   * @param {object} res - Express response object.
+   * @param {Function} next - Express next middleware function.
+   */
+  async delete (req, res, next) {
+    try {
+      await User.deleteOne({ userID: req.currentUser.userID })
+
+      res
+        .status(204)
+        .end()
+    } catch (error) {
+      let err = error
+      if (error.name === 'ValidationError') {
+        err = createError(400)
+        err.innerException = error
+      }
+      next(err)
+    }
+  }
+
+  /**
    * Sends a friend request to the specified user.
    *
    * @param {object} req - Express request object.
