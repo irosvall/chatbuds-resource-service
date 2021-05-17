@@ -60,7 +60,6 @@ router.patch('/declinefriend/:userID',
 // DELETE user
 router.delete('/',
   (req, res, next) => authService.authenticateJWT(req, res, next),
-  (req, res, next) => controller.loadCurrentUser(req, res, next),
   (req, res, next) => controller.delete(req, res, next)
 )
 

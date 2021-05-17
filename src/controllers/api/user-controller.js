@@ -145,18 +145,17 @@ export class UserController {
    */
   async delete (req, res, next) {
     try {
-      await User.deleteOne({ userID: req.currentUser.userID })
+      const response = await User.deleteOne({ userID: req.account.userID })
 
+      if (response.deletedCount === 0) {
+        next(createError(404))
+        return
+      }
       res
         .status(204)
         .end()
     } catch (error) {
-      let err = error
-      if (error.name === 'ValidationError') {
-        err = createError(400)
-        err.innerException = error
-      }
-      next(err)
+      next(error)
     }
   }
 
