@@ -8,12 +8,13 @@
 
 import mongoose from 'mongoose'
 import chai from 'chai'
-import sinon from 'sinon'
 import { mockdata } from './mockdata.js'
+import { TestUtils } from './utils.js'
 import { User } from '../src/models/user.js'
 import { UserController } from '../src/controllers/api/user-controller.js'
 
 const userController = new UserController()
+const utils = new TestUtils()
 
 describe('Friends functionality', () => {
   before(async () => {
@@ -35,8 +36,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully send friend request', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
-      const res = mockResponse()
+      const req = await utils.createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
+      const res = utils.mockResponse()
 
       await userController.sendFriendRequest(req, res, () => { })
 
@@ -49,8 +50,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should not send duplicate friend request', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test', 'test2friendRequestFromTest')
-      const callback = mockCallback()
+      const req = await utils.createReqWithCurrentAndTargetUser('test', 'test2friendRequestFromTest')
+      const callback = utils.mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
 
@@ -63,8 +64,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should not send friend request to already friend', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
-      const callback = mockCallback()
+      const req = await utils.createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
+      const callback = utils.mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
 
@@ -84,7 +85,7 @@ describe('Friends functionality', () => {
         currentUser: currentUser,
         targetedUser: targetedUser
       }
-      const callback = mockCallback()
+      const callback = utils.mockCallback()
 
       await userController.sendFriendRequest(req, {}, callback)
 
@@ -102,8 +103,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully accept friend request', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
-      const res = mockResponse()
+      const req = await utils.createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
+      const res = utils.mockResponse()
 
       await userController.acceptFriendRequest(req, res, () => { })
 
@@ -118,8 +119,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should remove all friend requests when both users has sent friend request', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test4friendRequestToTest5', 'test5friendRequestToTest4')
-      const res = mockResponse()
+      const req = await utils.createReqWithCurrentAndTargetUser('test4friendRequestToTest5', 'test5friendRequestToTest4')
+      const res = utils.mockResponse()
 
       await userController.acceptFriendRequest(req, res, () => { })
 
@@ -136,8 +137,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should not accept friend request if no request has been sent', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
-      const callback = mockCallback()
+      const req = await utils.createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
+      const callback = utils.mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
 
@@ -158,8 +159,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully decline friend request', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
-      const res = mockResponse()
+      const req = await utils.createReqWithCurrentAndTargetUser('test2friendRequestFromTest', 'test')
+      const res = utils.mockResponse()
 
       await userController.declineFriendRequest(req, res, () => { })
 
@@ -172,8 +173,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should not decline friend request if no request has been sent', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
-      const callback = mockCallback()
+      const req = await utils.createReqWithCurrentAndTargetUser('test1NoFriends', 'test')
+      const callback = utils.mockCallback()
 
       await userController.acceptFriendRequest(req, {}, callback)
 
@@ -192,8 +193,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should successfully remove friend', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
-      const res = mockResponse()
+      const req = await utils.createReqWithCurrentAndTargetUser('test', 'test3friendsWithTest')
+      const res = utils.mockResponse()
 
       await userController.removeFriend(req, res, () => { })
 
@@ -206,8 +207,8 @@ describe('Friends functionality', () => {
     })
 
     it('Should not remove friend if the users are not friends', async () => {
-      const req = await createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
-      const callback = mockCallback()
+      const req = await utils.createReqWithCurrentAndTargetUser('test', 'test1NoFriends')
+      const callback = utils.mockCallback()
 
       await userController.removeFriend(req, {}, callback)
 
@@ -227,45 +228,4 @@ describe('Friends functionality', () => {
 const resetTestDatabase = async () => {
   await User.deleteMany()
   await User.insertMany(mockdata.users)
-}
-
-/**
- * Creates a req object with the current user and target user on it,
- * retrieved from the test database.
- *
- * @param {string} currentUserID - The ID of the current user.
- * @param {string} targetUserID - The ID of the targeted user.
- * @returns {object} - The mocked req object.
- */
-const createReqWithCurrentAndTargetUser = async (currentUserID, targetUserID) => {
-  const currentUser = await User.getById(currentUserID)
-  const targetedUser = await User.getById(targetUserID)
-
-  return {
-    currentUser: currentUser,
-    targetedUser: targetedUser
-  }
-}
-
-/**
- * Creates a mocked response object.
- *
- * @returns {object} - The response object.
- */
-const mockResponse = () => {
-  const res = {}
-  res.status = sinon.stub().returns(res)
-  res.json = sinon.stub().returns(res)
-  res.send = sinon.stub().returns(res)
-  res.end = sinon.stub().returns(res)
-  return res
-}
-
-/**
- * Returns a mocked next function.
- *
- * @returns {Function} - The mocked function.
- */
-const mockCallback = () => {
-  return sinon.spy()
 }

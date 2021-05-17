@@ -8,12 +8,13 @@
 
 import mongoose from 'mongoose'
 import chai from 'chai'
-import sinon from 'sinon'
 import { mockdata } from './mockdata.js'
+import { TestUtils } from './utils.js'
 import { User } from '../src/models/user.js'
 import { UserController } from '../src/controllers/api/user-controller.js'
 
 const userController = new UserController()
+const utils = new TestUtils()
 
 describe('User tests', () => {
   before(async () => {
@@ -35,10 +36,10 @@ describe('User tests', () => {
     })
 
     it('User should not exist in user database anymore', async () => {
-      const currentUser = await User.getById('test')
-
-      const req = { currentUser: currentUser }
-      const res = mockResponse()
+      const req = {
+        account: { userID: 'test' }
+      }
+      const res = utils.mockResponse()
 
       await userController.delete(req, res, () => {})
       chai.assert.isTrue(res.status.calledWith(204), 'Expected response to send status 204')
@@ -46,10 +47,25 @@ describe('User tests', () => {
     })
 
     it('User should not exist in other users information', async () => {
-      const currentUser = await User.getById('test')
+      const req = {
+        account: { userID: 'test' }
+      }
+      const res = utils.mockResponse()
 
-      const req = { currentUser: currentUser }
-      const res = mockResponse()
+      await userController.delete(req, res, () => {})
+
+      const friendWithCurrentUser = await User.getById('test3friendsWithTest')
+      const userWithFriendRequestFromCurrentUser = await User.getById('test2friendRequestFromTest')
+
+      chai.assert.isFalse(friendWithCurrentUser.friends.some(user => user.userID === currentUser.userID))
+      chai.assert.isFalse(userWithFriendRequestFromCurrentUser.recievedFriendRequests.some(user => user.userID === currentUser.userID))
+    })
+
+    it('Deleting a nonexistent user results in status 404', async () => {
+      const req = {
+        account: { userID: 'test' }
+      }
+      const res = utils.mockResponse()
 
       await userController.delete(req, res, () => {})
 
@@ -68,18 +84,4 @@ describe('User tests', () => {
 const resetTestDatabase = async () => {
   await User.deleteMany()
   await User.insertMany(mockdata.users)
-}
-
-/**
- * Creates a mocked response object.
- *
- * @returns {object} - The response object.
- */
-const mockResponse = () => {
-  const res = {}
-  res.status = sinon.stub().returns(res)
-  res.json = sinon.stub().returns(res)
-  res.send = sinon.stub().returns(res)
-  res.end = sinon.stub().returns(res)
-  return res
 }
