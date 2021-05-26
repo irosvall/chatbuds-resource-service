@@ -1,0 +1,35 @@
+image: node:14.9.0
+
+include:
+  - template: Security/Secret-Detection.gitlab-ci.yml
+
+stages:
+  - build
+  - test
+
+Build system:
+  stage: build
+  
+  script:
+    - npm install
+
+Code Linting:
+  stage: test
+
+  before_script:
+    - npx install-peerdeps --dev @lnu/eslint-config
+
+  script:
+    - npx eslint
+
+Run tests:
+  stage: test
+
+  before_script:
+    - npm install mongoose
+    - npm install mocha --save-dev
+    - npm install sinon --save-dev
+    - npm install chai --save-dev
+
+  script:
+    - npx mocha --timeout 10000 ./tests
