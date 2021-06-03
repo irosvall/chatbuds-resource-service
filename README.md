@@ -23,12 +23,12 @@ The .env file should contain:
 
 - PORT= which port the Resource Service should run on
 - DB_CONNECTION_STRING= the database connection string
-- PUBLIC_KEY_FILEPATH= the file path to public key for JWT decoding
+- PUBLIC_KEY_FILEPATH= the file path to public key used for JWT decoding
 - DB_CONNECTION_STRING_TEST= the database connection string used for tests
 
 (replace the description next to "=" with its desired value)
 
-### Enter "npm install" in the terminal to build the dependecies
+### Enter "npm install" in the terminal to build the dependencies
 
 ## Running Resource Service
 Development mode: enter "npm run start:dev" in the terminal.
