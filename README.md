@@ -5,11 +5,11 @@ A microservice to serve resources for the ChatBuds application.
 ## System overview
 ChatBuds is built as a small microservice-architecture. The consumer/client only communicates with the API Gateway which handles the back-end communication.
 
-The client: https://gitlab.lnu.se/1dv613/student/ir222gn/projects/chatbuds
+The client: https://github.com/irosvall/chatbuds-client
 
-The API Gateway: https://gitlab.lnu.se/1dv613/student/ir222gn/projects/api-gateway
+The API Gateway: https://github.com/irosvall/chatbuds-api-gateway
 
-The Authentication Service: https://gitlab.lnu.se/1dv613/student/ir222gn/projects/auth-service
+The Authentication Service: https://github.com/irosvall/chatbuds-auth-service
 
 ![Architecture](./.readme/chatbuds-architecture.png)
 
